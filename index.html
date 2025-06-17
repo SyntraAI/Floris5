@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Floris5</title>
+  <meta name="company-description" content="test">
+  <style>
+    body {
+      background-color: #f9f9f9;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      margin: 0;
+      padding-top: 30px;
+    }
+
+    .chat-box {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 600px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    img.logo {
+      width: 150px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      color: #007b5e;
+      margin: 10px 0 5px 0;
+      font-size: 32px;
+    }
+
+    h2 {
+      color: #555;
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 16px;
+      font-weight: normal;
+    }
+
+    input, button {
+      width: 80%;
+      padding: 12px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      background-color: #007b5e;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #005c49;
+    }
+
+    pre {
+      margin-top: 20px;
+      text-align: left;
+      background-color: #f0f0f0;
+      padding: 15px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      min-height: 50px;
+    }
+
+    .file-preview img {
+      max-width: 100%;
+      margin-top: 10px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Chat met Digitale Assistent -->
+  <div class="chat-box">
+    <img class="logo" src="ahv-logo.jpg" alt="Floris5 logo" />
+    <h1>Floris5</h1>
+    <h2>Floris5 – stel je vraag aan onze digitale assistent</h2>
+
+    <input id="userInput" placeholder="Typ hier je vraag..." />
+    <br />
+    <button onclick="sendToGPT()">Verstuur</button>
+    <pre id="response">Antwoord verschijnt hier...</pre>
+  </div>
+
+  <!-- AHV / Foto Upload Sectie -->
+  <div class="chat-box">
+    <h2>Upload een foto van je telefoon of AHV behandelingen</h2>
+
+    <input type="file" id="imageUpload" accept="image/*" />
+    <br />
+    <button onclick="uploadImage()">Verstuur</button>
+    <pre id="imageResponse">Antwoord verschijnt hier...</pre>
+    <div class="file-preview" id="filePreview"></div>
+  </div>
+
+  <script>
+    const companyName = "Floris5";
+    const excelFileName = "Test data CA.csv";
+    const companyDescription = document.querySelector('meta[name="company-description"]').content;
+
+    // ✅ CORRECT WEBHOOK
+    const webhookURL = "https://hook.eu2.make.com/j66cf9tjvird3dx3lywmjl23i14gaauf";
+
+    async function sendToGPT() {
+      const input = document.getElementById("userInput").value;
+      const responseEl = document.getElementById("response");
+      responseEl.innerText = "Even nadenken...";
+
+      try {
+        const res = await fetch(webhookURL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            company_name: companyName,
+            company_description: companyDescription,
+            message: input,
+            company_excel: {
+              name: excelFileName
+            }
+          })
+        });
+
+        const reply = await res.text();
+        responseEl.innerText = reply || "Geen antwoord ontvangen.";
+      } catch (err) {
+        responseEl.innerText = "Fout: " + err.message;
+      }
+    }
+
+    async function uploadImage() {
+      const fileInput = document.getElementById("imageUpload");
+      const file = fileInput.files[0];
+      const previewEl = document.getElementById("filePreview");
+      const responseEl = document.getElementById("imageResponse");
+
+      if (!file) {
+        responseEl.innerText = "Geen bestand geselecteerd.";
+        return;
+      }
+
+      responseEl.innerText = "Bezig met uploaden...";
+      const reader = new FileReader();
+
+      reader.onload = async function(e) {
+        const base64Image = e.target.result;
+
+        // Toon voorbeeld
+        previewEl.innerHTML = `<strong>Voorbeeld van je upload:</strong><br><img src="${base64Image}" alt="Upload preview" />`;
+
+        try {
+          const res = await fetch(webhookURL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              company_name: companyName,
+              company_description: companyDescription,
+              message: "Afbeelding geüpload",
+              uploaded_image: base64Image,
+              company_excel: {
+                name: excelFileName
+              }
+            })
+          });
+
+          const reply = await res.text();
+          responseEl.innerText = reply || "Geen antwoord ontvangen.";
+        } catch (err) {
+          responseEl.innerText = "Fout: " + err.message;
+        }
+      };
+
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>
